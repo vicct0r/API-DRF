@@ -4,6 +4,7 @@ from rest_framework.generics import get_object_or_404
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework import mixins
 
 from .models import Curso, Avaliacao
 from .serializers import CursoSerializer, AvaliacaoSerializer
@@ -73,11 +74,33 @@ class CursoViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'])
     def avaliacoes(self, request, pk=None):
-        curso = self.get_object()
-        serializer = AvaliacaoSerializer(curso.avaliacoes.all(), many=True) # curso.avaliacoes.all() 'avaliacoes' é o related_name da chave estrangeira 'curso' dentro de Avaliacoes no Model
+        # paginação para esta função que não é afetada pela PAGINATION_CLASS do meu settings
+        self.pagination_class.page_size = 1 # limite de conteudo por página
+        avaliacoes = Avaliacao.objects.filter(curso_id=pk) # fazendo o filtro das avaliacoes
+        page = self.paginate_queryset(avaliacoes) # gerando a página
+
+        if page is not None: # existe pagina?
+            serializer = AvaliacaoSerializer(page, many=True) # passando a página para o serializer 
+            return self.get_paginated_response(serializer.data) # trazendo os dados na resposta
+
+        serializer = AvaliacaoSerializer(avaliacoes, many=True) 
         return Response(serializer.data)
 
 
-class AvaliacaoViewSet(viewsets.ModelViewSet):
+"""class AvaliacaoViewSet(viewsets.ModelViewSet):
+    queryset = Avaliacao.objects.all()
+    serializer_class = AvaliacaoSerializer"""
+
+class AvaliacaoViewSet(
+    # mixins.ListModelMixin, 
+    mixins.CreateModelMixin, 
+    mixins.RetrieveModelMixin, 
+    mixins.UpdateModelMixin, 
+    mixins.DestroyModelMixin, 
+    viewsets.GenericViewSet
+):
+    # mostrando que é possível implementar um ViewSet tirando alguma funcionalidade que eu não desejar
+    # no exemplo, tiramos o ListModelMixin, mas poderiamos tirar o DestroyModelMixin 
+    # para que não seja possível o usuário apagar algum objeto
     queryset = Avaliacao.objects.all()
     serializer_class = AvaliacaoSerializer
