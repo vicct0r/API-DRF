@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.db.models import Avg # Função de Agregação (Average/Média)
 from .models import Curso, Avaliacao
 
 class AvaliacaoSerializer(serializers.ModelSerializer):
@@ -20,6 +21,11 @@ class AvaliacaoSerializer(serializers.ModelSerializer):
             'ativo'
         ]
 
+    def validate_avaliacao(self, valor):
+        if valor in range(1, 10):
+            return valor
+        raise serializers.ValidationError('A avaliação deve ser de 1 à 9')
+
 
 class CursoSerializer(serializers.ModelSerializer):
     # Nested Relationship
@@ -31,6 +37,8 @@ class CursoSerializer(serializers.ModelSerializer):
     # Hyperlinked Related Field
     avaliacoes = serializers.HyperlinkedRelatedField(many=True, read_only=True, view_name='avaliacao-detail')
 
+    media_avaliacoes = serializers.SerializerMethodField()
+
     class Meta:
         model = Curso
         fields = [
@@ -39,5 +47,13 @@ class CursoSerializer(serializers.ModelSerializer):
             'url',
             'criacao',
             'ativo',
-            'avaliacoes'
+            'avaliacoes',
+            'media_avaliacoes'
         ]
+
+    def get_media_avaliacoes(self, obj):
+        media = obj.avaliacoes.aggregate(Avg('avaliacao')).get('avaliacao__avg')
+
+        if media is None:
+            return 0
+        return round(media * 2) / 2

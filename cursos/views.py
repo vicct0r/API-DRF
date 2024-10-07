@@ -5,6 +5,9 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import mixins
+from rest_framework import permissions
+
+from .permissions import ESuperUser
 
 from .models import Curso, Avaliacao
 from .serializers import CursoSerializer, AvaliacaoSerializer
@@ -68,7 +71,9 @@ class CursoViewSet(viewsets.ModelViewSet):
     # ModelViewSet me dá todas as operações de CRUD do meu Model 'Curso'
     # e o decorador '@action' já faz com que o router que instânciei no meu módulo cursos.urls
     # crie automaticamente o endpoint (rota) para esta página da View
-
+    permission_classes = (
+        ESuperUser,
+        permissions.DjangoModelPermissions, )
     queryset = Curso.objects.all()
     serializer_class = CursoSerializer
 
@@ -92,7 +97,7 @@ class CursoViewSet(viewsets.ModelViewSet):
     serializer_class = AvaliacaoSerializer"""
 
 class AvaliacaoViewSet(
-    # mixins.ListModelMixin, 
+    mixins.ListModelMixin, 
     mixins.CreateModelMixin, 
     mixins.RetrieveModelMixin, 
     mixins.UpdateModelMixin, 
